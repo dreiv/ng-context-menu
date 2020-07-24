@@ -1,0 +1,13 @@
+.users {
+  border: 1px solid lightgray;
+}
+.user {
+  box-sizing: border-box;
+  padding: 0.25rem 0.5rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+
+  &:not(:last-of-type) {
+    border-bottom: 1px solid lightgray;
+  }
+}

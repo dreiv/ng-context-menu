@@ -1,4 +1,18 @@
-import { Component } from '@angular/core';
+import {
+  Component,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef
+} from '@angular/core';
+import { Overlay, OverlayRef } from '@angular/cdk/overlay';
+import { TemplatePortal } from '@angular/cdk/portal';
+import { Subscription, fromEvent } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
+
+interface User {
+  id: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-root',
@@ -6,7 +20,7 @@ import { Component } from '@angular/core';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  users = [
+  users: User[] = [
     {
       id: '7583926a-1d0b-4a3b-bc75-fe3cd5024172',
       name: 'Khadijah Clayton'
@@ -24,4 +38,64 @@ export class AppComponent {
       name: 'Saskia Hubbard'
     }
   ];
+  sub!: Subscription;
+  @ViewChild('userMenu') userMenu!: TemplateRef<any>;
+
+  overlayRef!: OverlayRef | null;
+
+  constructor(public overlay: Overlay, public vcr: ViewContainerRef) {}
+
+  open({ x, y }: MouseEvent, user: User): void {
+    this.close();
+    const positionStrategy = this.overlay
+      .position()
+      .flexibleConnectedTo({ x, y })
+      .withPositions([
+        {
+          originX: 'end',
+          originY: 'bottom',
+          overlayX: 'end',
+          overlayY: 'top'
+        }
+      ]);
+
+    this.overlayRef = this.overlay.create({
+      positionStrategy,
+      scrollStrategy: this.overlay.scrollStrategies.close()
+    });
+
+    this.overlayRef.attach(
+      new TemplatePortal(this.userMenu, this.vcr, {
+        $implicit: user
+      })
+    );
+
+    this.sub = fromEvent<MouseEvent>(document, 'click')
+      .pipe(
+        filter((event) => {
+          const clickTarget = event.target as HTMLElement;
+          return (
+            !!this.overlayRef &&
+            !this.overlayRef.overlayElement.contains(clickTarget)
+          );
+        }),
+        take(1)
+      )
+      .subscribe(() => this.close());
+  }
+
+  close(): void {
+    if (this.sub) {
+      this.sub.unsubscribe();
+    }
+
+    if (this.overlayRef) {
+      this.overlayRef.dispose();
+      this.overlayRef = null;
+    }
+  }
+
+  delete(user: User): void {
+    this.close();
+  }
 }
